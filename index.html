@@ -139,8 +139,14 @@ const AUTH_KEY = 'inz_session';
 const USUARIOS = [
   { usuario:'Admin', senha:'123' },
   { usuario:'Marcell', senha:'123' },
-  { usuario:'Felipe', senha:'123' }
+  { usuario:'Felipe', senha:'123' },
+  { usuario:'Config', senha:'123' }
 ];
+const ADMIN_USERS = ['admin','marcell','config'];
+function isAdmin(){
+  const s = getSession();
+  return !!s && ADMIN_USERS.includes((s.usuario||'').toLowerCase());
+}
 function getSession(){ try { return JSON.parse(localStorage.getItem(AUTH_KEY)); } catch(e){ return null; } }
 function doLogin(ev){
   ev.preventDefault();
@@ -312,17 +318,17 @@ const NAV_ITEMS = [
   { id:'pessoas', label:'Pessoas', icon:'👥' },
   { id:'criancas', label:'Crianças', icon:'👶' },
   { id:'veiculos', label:'Veículos', icon:'🚗' },
-  { id:'placa', label:'Identificar placa', icon:'📷' },
+  { id:'placa', label:'Identificar placa', icon:'📷', adminOnly:true },
   { id:'mensagens', label:'Mensagens', icon:'💬' },
   { id:'relatorios', label:'Relatórios', icon:'📊' },
   { id:'backup', label:'Backup', icon:'💾' },
-  { id:'restaurar', label:'Restaurar', icon:'♻️' },
-  { id:'config', label:'Configurações', icon:'⚙️' },
+  { id:'restaurar', label:'Restaurar', icon:'♻️', adminOnly:true },
+  { id:'config', label:'Configurações', icon:'⚙️', adminOnly:true },
   { id:'sobre', label:'Sobre', icon:'ℹ️' }
 ];
 function renderSidebarNav(){
   const current = currentRoute().page;
-  document.getElementById('sidebarNav').innerHTML = NAV_ITEMS.map(it => `
+  document.getElementById('sidebarNav').innerHTML = NAV_ITEMS.filter(it => !it.adminOnly || isAdmin()).map(it => `
     <button onclick="navigate('${it.id}'); closeSidebar();" class="sidebar-item ${it.id===current?'active':''} w-full flex items-center gap-3 px-5 py-3 text-slate-700 hover:bg-brand-50 transition text-left">
       <span class="text-lg">${it.icon}</span><span class="text-sm">${it.label}</span>
     </button>`).join('');
@@ -342,6 +348,11 @@ window.addEventListener('DOMContentLoaded', () => { checkAuth(); });
 
 function render(){
   const { page, param } = currentRoute();
+  if (['config','restaurar','placa'].includes(page) && !isAdmin()) {
+    toast('Você não tem permissão para acessar esta página.', 'error');
+    navigate('dashboard');
+    return;
+  }
   renderSidebarNav();
   const app = document.getElementById('app');
   const pages = {
@@ -393,7 +404,7 @@ function renderDashboard(){
       ${shortcutBtn('👶','Nova Criança',"openCriancaForm()")}
       ${shortcutBtn('🚗','Novo Veículo',"openVeiculoForm()")}
       ${shortcutBtn('💬','Nova Mensagem',"openMensagemForm()")}
-      ${shortcutBtn('📷','Ler placa pela câmera',"navigate('placa')")}
+      ${isAdmin() ? shortcutBtn('📷','Ler placa pela câmera',"navigate('placa')") : ''}
       ${shortcutBtn('📊','Ver relatórios',"navigate('relatorios')")}
     </div>
 
